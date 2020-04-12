@@ -1,7 +1,7 @@
 import com.bot4s.telegram.api.RequestHandler
 import com.bot4s.telegram.clients.{ScalajHttpClient}
 import com.bot4s.telegram.future.TelegramBot
-import slogging.{LoggerConfig, PrintLoggerFactory}
+import slogging.{LoggerConfig}
 
 import scala.concurrent.Future
 
@@ -15,10 +15,7 @@ import scala.concurrent.Future
  * @param token Bot's token.
  */
 abstract class Bot(val token: String) extends TelegramBot {
-  PrintLoggerFactory.infoStream = System.out
-  PrintLoggerFactory.debugStream = System.out
-  PrintLoggerFactory.traceStream = System.out
-  LoggerConfig.factory = PrintLoggerFactory()
+  LoggerConfig.factory = BotLogger.loggerFactory
 
   override val client: RequestHandler[Future] = new ScalajHttpClient(token)
 
