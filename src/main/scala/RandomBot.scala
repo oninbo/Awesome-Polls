@@ -1,6 +1,7 @@
-/*
-For reference
- */
+/**
+ * For reference
+ * Adopted from https://github.com/bot4s/telegram/blob/master/examples/src/RandomBot.scala
+ * */
 
 import cats.instances.future._
 import cats.syntax.functor._
