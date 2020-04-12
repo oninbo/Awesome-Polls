@@ -9,7 +9,11 @@ import scala.collection.mutable.{ListBuffer, Map}
 import scala.concurrent.Future
 import scala.util.Failure
 
-case class UserState()
+// TODO
+sealed trait UserState {
+  object StartPoll extends UserState
+  //case class FillPoll(question: String, options: Array[String], )
+}
 
 class AwesomePollsBot(token: String) extends Bot(token)
   with Polling
