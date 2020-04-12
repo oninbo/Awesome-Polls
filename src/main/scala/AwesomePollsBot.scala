@@ -40,6 +40,6 @@ class AwesomePollsBot(token: String) extends Bot(token)
   }
 
   onCommand("stop") { implicit msg =>
-    request(StopPoll(ChatId(msg.chat.id), Some(0))).void
+    request(StopPoll(ChatId(msg.chat.id), Some(polls.last))).void
   }
 }

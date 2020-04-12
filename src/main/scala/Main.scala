@@ -8,7 +8,7 @@ object Main extends App with LazyLogging {
   // To run spawn the bot
   sys.env.get("TOKEN") match {
     case Some(value) => {
-      val bot = new RandomBot(value)
+      val bot = new AwesomePollsBot(value)
       val eol = bot.run()
       logger.info("Press [ENTER] to shutdown the bot")
       scala.io.StdIn.readLine()
