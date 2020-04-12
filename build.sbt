@@ -2,9 +2,10 @@ name := "AwesomePolls"
 
 version := "0.1"
 
-scalaVersion := "2.12.6"
+scalaVersion := "2.13.1"
 
 libraryDependencies ++= Seq(
-  "com.bot4s" %% "telegram-core" % "4.4.0-RC2",
-  "com.softwaremill.sttp" %% "core" % "1.2.0"
+  "org.augustjune" %% "canoe" % "0.4.1",
+  "org.slf4j" % "slf4j-api" % "1.7.5",
+  "org.slf4j" % "slf4j-simple" % "1.7.5"
 )
