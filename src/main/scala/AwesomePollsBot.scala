@@ -64,7 +64,8 @@ class AwesomePollsBot(val token: String) extends IOApp {
               if (options.length < 2) Scenario.eval(message.chat.send("Not enough options."))
               else {
                 userStates -= message.chat.id
-                Scenario.eval(SendPoll(message.chat.id, value, options, Some(false)).call)
+                Scenario.eval(SendPoll(message.chat.id, value, if (options.length > 10)
+                  options.take(10) else options, Some(false)).call)
               }
             }
             case _ => Scenario.done[F]
