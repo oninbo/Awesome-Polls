@@ -13,3 +13,4 @@ TOKEN=<your-bot-token>
 - [ ] Poll stopping
 - [ ] Notification on new votes
 - [ ] Multivoting
+- [ ] Save poll results as file (CSV)
