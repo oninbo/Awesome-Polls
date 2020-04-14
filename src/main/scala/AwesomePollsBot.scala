@@ -15,7 +15,7 @@ class AwesomePollsBot(val token: String) extends IOApp {
   val userStates: mutable.Map[Long, UserState] = mutable.Map()
 
   val questionMessage: String = "Enter question."
-  val optionMessage: String = "Enter option."
+  val optionMessage: String = "Enter option. Use /done to create a poll."
 
   def run(args: List[String]): IO[ExitCode] =
     Stream

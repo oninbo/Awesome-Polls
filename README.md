@@ -1,7 +1,9 @@
 # Awesome-Polls
-Put into the project root directory your `.env` file containg 
+Put into the project root directory your `.env` file containing 
 ```
 TOKEN=<your-bot-token>
+AWS_ACCESS_KEY_ID=xxx
+AWS_SECRET_ACCESS_KEY=yyy
 ```
 ### Commands
 - `/poll` -> Create new poll
