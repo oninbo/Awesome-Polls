@@ -4,6 +4,7 @@ import canoe.syntax._
 import canoe.models.messages.TextMessage
 import cats.effect.{ExitCode, IO, IOApp, Timer}
 import cats.syntax.functor._
+import cats.effect.concurrent.Ref
 import fs2.Stream
 
 import scala.collection.mutable
@@ -17,56 +18,58 @@ class AwesomePollsBot(val token: String) extends IOApp {
   val questionMessage: String = "Enter question."
   val optionMessage: String = "Enter option."
 
-  def run(args: List[String]): IO[ExitCode] =
-    Stream
+  def run(args: List[String]): IO[ExitCode] = for {
+    users <- Ref[IO].of(Map[Long, UserState]())
+    result <- Stream
       .resource(TelegramClient.global[IO](token))
-      .flatMap { implicit client => Bot.polling[IO].follow(poll, done, onMessage) }
+      .flatMap { implicit client => Bot.polling[IO].follow(poll(users), done(users), onMessage(users)) }
       .compile.drain.as(ExitCode.Success)
+  } yield result
 
-  def poll[F[_]: TelegramClient: Timer]: Scenario[F, Unit] =
+  def poll[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]]): Scenario[F, Unit] =
     for {
       message <- Scenario.expect(command("poll"))
-      _ <- {
-        userStates += (message.chat.id -> CreatePoll())
-        Scenario.eval(message.chat.send(questionMessage))
-      }
+      _ <- Scenario.eval(users.update(_ + (message.chat.id -> CreatePoll())))
+      _ <- Scenario.eval(message.chat.send(questionMessage))
     } yield ()
 
-  def onMessage[F[_]: TelegramClient: Timer]: Scenario[F, Unit] =
+  def onMessage[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]]): Scenario[F, Unit] =
     for {
       message <- Scenario.expect {
         case m: TextMessage if !isCommand(m.text) => m
       }
-      _ <- userStates.get(message.chat.id) match {
-        case Some(CreatePoll(question, options)) => {
-          question match {
+      usersMap <- Scenario.eval(users.get)
+      _ <- usersMap.get(message.chat.id) match {
+        case Some(CreatePoll(question, options)) => for {
+          _ <- question match {
             case Some(value) => {
-              userStates += (message.chat.id -> CreatePoll(Some(value), options :+ message.text))
+              Scenario.eval(users.update(_ + (message.chat.id -> CreatePoll(Some(value), options :+ message.text))))
             }
             case None => {
-              userStates += (message.chat.id -> CreatePoll(Some(message.text)))
+              Scenario.eval(users.update(_ + (message.chat.id -> CreatePoll(Some(message.text)))))
             }
           }
-          Scenario.eval(message.chat.send(optionMessage))
-        }
+          _ <- Scenario.eval(message.chat.send(optionMessage))
+        } yield ()
         case _ => Scenario.done[F]
       }
     } yield ()
 
 
-  def done[F[_]: TelegramClient: Timer]: Scenario[F, Unit] =
+  def done[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]]): Scenario[F, Unit] =
     for {
       message <- Scenario.expect(command("done"))
-      _ <- userStates.get(message.chat.id) match {
+      usersMap <- Scenario.eval(users.get)
+      _ <- usersMap.get(message.chat.id) match {
         case Some(CreatePoll(question, options)) => {
           question match {
             case Some(value) => {
               if (options.length < 2) Scenario.eval(message.chat.send("Not enough options."))
-              else {
-                userStates -= message.chat.id
-                Scenario.eval(SendPoll(message.chat.id, value, if (options.length > 10)
+              else for {
+                _ <- Scenario.eval(users.update(_ - message.chat.id))
+                _ <- Scenario.eval(SendPoll(message.chat.id, value, if (options.length > 10)
                   options.take(10) else options, Some(false)).call)
-              }
+              } yield ()
             }
             case _ => Scenario.done[F]
           }

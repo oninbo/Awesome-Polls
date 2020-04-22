@@ -9,9 +9,7 @@ object Main extends IOApp {
     val config = ConfigSource.default.load[BotConfig]
     config match {
       case Left(_) => IO(ExitCode.Error)
-      case Right(value) => for {
-        _ <- new AwesomePollsBot(value.token).run(args)
-      } yield ExitCode.Success
+      case Right(value) => new AwesomePollsBot(value.token).run(args)
     }
   }
 }
