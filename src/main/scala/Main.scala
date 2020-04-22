@@ -1,9 +1,17 @@
+import pureconfig._
+import pureconfig.generic.auto._
 import cats.effect.{ExitCode, IO, IOApp}
 
-object Main extends IOApp {
+case class BotConfig(token: String)
 
-  def run(args: List[String]): IO[ExitCode] = for {
-    token <- IO(sys.env("TOKEN"))
-    _ <- new AwesomePollsBot(token).run(args)
-  } yield ExitCode.Success
+object Main extends IOApp {
+  def run(args: List[String]): IO[ExitCode] = {
+    val config = ConfigSource.default.load[BotConfig]
+    config match {
+      case Left(_) => IO(ExitCode.Error)
+      case Right(value) => for {
+        _ <- new AwesomePollsBot(value.token).run(args)
+      } yield ExitCode.Success
+    }
+  }
 }
