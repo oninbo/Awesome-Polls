@@ -1,30 +1,25 @@
 import canoe.api._
 import canoe.methods.messages.SendPoll
+import canoe.models.Update
 import canoe.syntax._
 import canoe.models.messages.TextMessage
-import cats.effect.{ExitCode, IO, IOApp, Timer}
+import cats.effect.{ConcurrentEffect, ExitCode, IO, IOApp, Timer}
 import cats.syntax.functor._
 import cats.effect.concurrent.Ref
 import fs2.Stream
 
-import scala.collection.mutable
-
 sealed trait UserState
 case class CreatePoll(question: Option[String] = None, options: List[String] = List()) extends UserState
 
-class AwesomePollsBot(val token: String) extends IOApp {
-  val userStates: mutable.Map[Long, UserState] = mutable.Map()
-
+class AwesomePollsBot(val token: String) {
   val questionMessage: String = "Enter question."
   val optionMessage: String = "Enter option."
 
-  def run(args: List[String]): IO[ExitCode] = for {
+  def run(implicit ec: ConcurrentEffect[IO], timer: Timer[IO]): IO[Stream[IO, Update]] = for {
     users <- Ref[IO].of(Map[Long, UserState]())
-    result <- Stream
-      .resource(TelegramClient.global[IO](token))
-      .flatMap { implicit client => Bot.polling[IO].follow(poll(users), done(users), onMessage(users)) }
-      .compile.drain.as(ExitCode.Success)
-  } yield result
+  } yield Stream
+    .resource(TelegramClient.global[IO](token))
+    .flatMap { implicit client => Bot.polling[IO].follow(poll(users), done(users), onMessage(users)) }
 
   def poll[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]]): Scenario[F, Unit] =
     for {
