@@ -1,31 +1,33 @@
+package awesomepollbot
+
 import canoe.api._
 import canoe.methods.messages.SendPoll
 import canoe.models.Update
+import canoe.models.messages.{TextMessage}
 import canoe.syntax._
-import canoe.models.messages.TextMessage
-import cats.effect.{ConcurrentEffect, ExitCode, IO, IOApp, Timer}
-import cats.syntax.functor._
 import cats.effect.concurrent.Ref
+import cats.effect.{ConcurrentEffect, IO, Timer}
 import fs2.Stream
 
 sealed trait UserState
 case class CreatePoll(question: Option[String] = None, options: List[String] = List()) extends UserState
 
-class AwesomePollsBot(val token: String) {
+object AwesomePollsBot {
   val questionMessage: String = "Enter question."
   val optionMessage: String = "Enter option."
+  implicit val sendMessages: Boolean = true
 
-  def run(implicit ec: ConcurrentEffect[IO], timer: Timer[IO]): IO[Stream[IO, Update]] = for {
+  def run(token: String)(implicit ec: ConcurrentEffect[IO], timer: Timer[IO]): IO[Stream[IO, Update]] = for {
     users <- Ref[IO].of(Map[Long, UserState]())
   } yield Stream
     .resource(TelegramClient.global[IO](token))
     .flatMap { implicit client => Bot.polling[IO].follow(poll(users), done(users), onMessage(users)) }
 
-  def poll[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]]): Scenario[F, Unit] =
+  def poll[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]])(implicit sendMessages: Boolean): Scenario[F, Unit] =
     for {
       message <- Scenario.expect(command("poll"))
       _ <- Scenario.eval(users.update(_ + (message.chat.id -> CreatePoll())))
-      _ <- Scenario.eval(message.chat.send(questionMessage))
+      _ <- if (sendMessages) Scenario.eval(message.chat.send(questionMessage)) else Scenario.done[F]
     } yield ()
 
   def onMessage[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]]): Scenario[F, Unit] =

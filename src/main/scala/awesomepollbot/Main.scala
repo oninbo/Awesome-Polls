@@ -1,6 +1,8 @@
+package awesomepollbot
+
+import cats.effect.{ExitCode, IO, IOApp}
 import pureconfig._
 import pureconfig.generic.auto._
-import cats.effect.{ExitCode, IO, IOApp}
 
 case class BotConfig(token: String)
 
@@ -10,7 +12,7 @@ object Main extends IOApp {
     config match {
       case Left(_) => IO(ExitCode.Error)
       case Right(value) => for {
-        bot <- new AwesomePollsBot(value.token).run
+        bot <- AwesomePollsBot.run(value.token)
         _ <- bot.compile.drain
       } yield ExitCode.Success
     }
