@@ -30,7 +30,7 @@ object AwesomePollsBot {
       _ <- if (sendMessages) Scenario.eval(message.chat.send(questionMessage)) else Scenario.done[F]
     } yield ()
 
-  def onMessage[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]]): Scenario[F, Unit] =
+  def onMessage[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]])(implicit sendMessages: Boolean): Scenario[F, Unit] =
     for {
       message <- Scenario.expect {
         case m: TextMessage if !isCommand(m.text) => m
@@ -46,7 +46,7 @@ object AwesomePollsBot {
               Scenario.eval(users.update(_ + (message.chat.id -> CreatePoll(Some(message.text)))))
             }
           }
-          _ <- Scenario.eval(message.chat.send(optionMessage))
+          _ <- if (sendMessages) Scenario.eval(message.chat.send(optionMessage)) else Scenario.done[F]
         } yield ()
         case _ => Scenario.done[F]
       }

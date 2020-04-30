@@ -57,6 +57,30 @@ class AwesomePollsBotSpec extends AnyFlatSpec with MockFactory with Matchers{
     }, Map(0.longValue -> CreatePoll(Some("q"), List("1"))))
   }
 
+  "onMessage" should "add question" in {
+    val userMessage = TextMessage(0, PrivateChat(0, None, None, None), 0, "q")
+    val messages: Stream[IO, TelegramMessage] = Stream(userMessage)
+    testScenario(AwesomePollsBot.onMessage, messages, _.get(userMessage.chat.id) should matchPattern {
+      case Some(CreatePoll(Some("q"), List())) =>
+    }, Map(0.longValue -> CreatePoll(None, List())))
+  }
+
+  it should "add option" in {
+    val userMessage = TextMessage(0, PrivateChat(0, None, None, None), 0, "1")
+    val messages: Stream[IO, TelegramMessage] = Stream(userMessage)
+    testScenario(AwesomePollsBot.onMessage, messages, _.get(userMessage.chat.id) should matchPattern {
+      case Some(CreatePoll(Some("q"), List("1"))) =>
+    }, Map(0.longValue -> CreatePoll(Some("q"), List())))
+  }
+
+  it should "ignore commands" in {
+    val userMessage = TextMessage(0, PrivateChat(0, None, None, None), 0, "/q")
+    val messages: Stream[IO, TelegramMessage] = Stream(userMessage)
+    testScenario(AwesomePollsBot.onMessage, messages, _.get(userMessage.chat.id) should matchPattern {
+      case Some(CreatePoll(Some("q"), List())) =>
+    }, Map(0.longValue -> CreatePoll(Some("q"), List())))
+  }
+
   def testScenario(sc: Ref[IO, Map[Long, UserState]] => Scenario[IO, Unit], messages: Stream[IO, TelegramMessage], check: Map[Long, UserState] => Assertion, users: Map[Long, UserState]): Unit = {
     def testSc(users: Ref[IO, Map[Long, UserState]]): Scenario[IO, Unit] =
       for {
