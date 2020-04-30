@@ -53,7 +53,7 @@ object AwesomePollsBot {
     } yield ()
 
 
-  def done[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]]): Scenario[F, Unit] =
+  def done[F[_]: TelegramClient: Timer](users: Ref[F, Map[Long, UserState]])(implicit sendMessages: Boolean): Scenario[F, Unit] =
     for {
       message <- Scenario.expect(command("done"))
       usersMap <- Scenario.eval(users.get)
@@ -61,11 +61,11 @@ object AwesomePollsBot {
         case Some(CreatePoll(question, options)) => {
           question match {
             case Some(value) => {
-              if (options.length < 2) Scenario.eval(message.chat.send("Not enough options."))
+              if (options.length < 2) if (sendMessages) Scenario.eval(message.chat.send("Not enough options.")) else Scenario.done[F]
               else for {
                 _ <- Scenario.eval(users.update(_ - message.chat.id))
-                _ <- Scenario.eval(SendPoll(message.chat.id, value, if (options.length > 10)
-                  options.take(10) else options, Some(false)).call)
+                _ <- if (sendMessages) Scenario.eval(SendPoll(message.chat.id, value, if (options.length > 10)
+                  options.take(10) else options, Some(false)).call) else Scenario.done[F]
               } yield ()
             }
             case _ => Scenario.done[F]

@@ -25,25 +25,12 @@ class AwesomePollsBotSpec extends AnyFlatSpec with MockFactory with Matchers{
   implicit val cs: ContextShift[IO] = cats.effect.IO.contextShift(ec)
   implicit val sendMessages: Boolean = false
 
-  def testScenario(sc: Ref[IO, Map[Long, UserState]] => Scenario[IO, Unit], messages: Stream[IO, TelegramMessage], check: Map[Long, UserState] => Assertion): Unit = {
-    def testSc(users: Ref[IO, Map[Long, UserState]]): Scenario[IO, Unit] =
-      for {
-        _ <- sc(users)
-        _  <- Scenario.eval(users.get)
-      } yield ()
-    (for {
-      users <- Ref[IO].of(Map[Long, UserState]())
-      _ <- messages.through(testSc(users).pipe).compile.drain
-      result <- users.get
-    } yield check(result)).unsafeRunSync()
-  }
-
   "poll" should "set user's state to CreatePoll with command poll" in {
     val userMessage = TextMessage(0, PrivateChat(0, None, None, None), 0, "/poll")
     val messages: Stream[IO, TelegramMessage] = Stream(userMessage)
     testScenario(AwesomePollsBot.poll, messages, _.get(userMessage.chat.id) should matchPattern {
       case Some(CreatePoll(None, List())) =>
-    })
+    }, Map())
   }
 
   it should "ignore usual messages" in {
@@ -51,6 +38,35 @@ class AwesomePollsBotSpec extends AnyFlatSpec with MockFactory with Matchers{
     val messages: Stream[IO, TelegramMessage] = Stream(userMessage)
     testScenario(AwesomePollsBot.poll, messages, _.get(userMessage.chat.id) should matchPattern {
       case None =>
-    })
+    }, Map())
+  }
+
+  "done" should "remove user" in {
+    val userMessage = TextMessage(0, PrivateChat(0, None, None, None), 0, "/done")
+    val messages: Stream[IO, TelegramMessage] = Stream(userMessage)
+    testScenario(AwesomePollsBot.done, messages, _.get(userMessage.chat.id) should matchPattern {
+      case None =>
+    }, Map(0.longValue -> CreatePoll(Some("q"), List("1", "2"))))
+  }
+
+  it should "not remove user if there are not enough options" in {
+    val userMessage = TextMessage(0, PrivateChat(0, None, None, None), 0, "/done")
+    val messages: Stream[IO, TelegramMessage] = Stream(userMessage)
+    testScenario(AwesomePollsBot.done, messages, _.get(userMessage.chat.id) should matchPattern {
+      case Some(CreatePoll(Some("q"), List("1"))) =>
+    }, Map(0.longValue -> CreatePoll(Some("q"), List("1"))))
+  }
+
+  def testScenario(sc: Ref[IO, Map[Long, UserState]] => Scenario[IO, Unit], messages: Stream[IO, TelegramMessage], check: Map[Long, UserState] => Assertion, users: Map[Long, UserState]): Unit = {
+    def testSc(users: Ref[IO, Map[Long, UserState]]): Scenario[IO, Unit] =
+      for {
+        _ <- sc(users)
+        _  <- Scenario.eval(users.get)
+      } yield ()
+    (for {
+      usersRef <- Ref[IO].of(users)
+      _ <- messages.through(testSc(usersRef).pipe).compile.drain
+      result <- usersRef.get
+    } yield check(result)).unsafeRunSync()
   }
 }
