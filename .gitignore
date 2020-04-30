@@ -20,4 +20,5 @@ project/plugins/project/
 
 .env
 *.conf
+!.scalafmt.conf
 .DS_Store

@@ -11,10 +11,11 @@ object Main extends IOApp {
     val config = ConfigSource.default.load[BotConfig]
     config match {
       case Left(_) => IO(ExitCode.Error)
-      case Right(value) => for {
-        bot <- AwesomePollsBot.run(value.token)
-        _ <- bot.compile.drain
-      } yield ExitCode.Success
+      case Right(value) =>
+        for {
+          bot <- AwesomePollsBot.run(value.token)
+          _   <- bot.compile.drain
+        } yield ExitCode.Success
     }
   }
 }
