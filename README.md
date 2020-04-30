@@ -1,7 +1,7 @@
 # Awesome-Polls
-Put into the project root directory your `.env` file containg 
+Put an `application.conf` file into `src/main/resources` with 
 ```
-TOKEN=<your-bot-token>
+token = <your-bot-token>
 ```
 ### Commands
 - `/poll` -> Create new poll

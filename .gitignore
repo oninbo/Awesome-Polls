@@ -19,5 +19,6 @@ project/plugins/project/
 .idea_modules
 
 .env
-
+*.conf
+!.scalafmt.conf
 .DS_Store
